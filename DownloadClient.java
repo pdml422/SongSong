@@ -5,26 +5,32 @@ import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DownloadClient {
+public class DownloadClient  {
 
     private final String directoryHost;
     private final int directoryPort = 4000;
-    private final int fragmentSize = 1024; // Example fragment size
+    private final int fragmentSize = 1024 * 1024; // Example fragment size
 
     public DownloadClient(String directoryHost) {
         this.directoryHost = directoryHost;
     }
 
-    public void downloadFile(String fileName, String destinationPath) {
+    public void downloadFile(String fileName, String destinationPath) throws IOException {
         try {
             // 1. Get daemon locations from the Directory
             Registry registry = LocateRegistry.getRegistry(directoryHost, directoryPort);
             DirectoryService directoryService = (DirectoryService) registry.lookup("directory_service");
-            List<String> daemonLocations = directoryService.getDaemonLocations(fileName);
+            List<Daemon> daemonInterfaces = directoryService.getDaemonLocations(fileName); // Get List<DaemonInterface>
 
-            if (daemonLocations.isEmpty()) {
+            if (daemonInterfaces.isEmpty()) {
                 System.out.println("No daemons have the file: " + fileName);
                 return;
+            }
+
+            // Convert DaemonInterface to String location for simplicity in this example
+            List<String> daemonLocations = new ArrayList<>();
+            for (Daemon daemon : daemonInterfaces) {
+                daemonLocations.add(daemon.getDaemonAddress() + ":" + daemon.getDaemonPort());
             }
 
             // 2. Determine file size (get from first daemon)
@@ -66,10 +72,15 @@ public class DownloadClient {
 
         } catch (Exception e) {
             System.err.println("Download failed: " + e.getMessage());
+            if (e instanceof IOException) {
+                throw (IOException) e;  // Re-throw IOException
+            } else {
+                throw new IOException("Download failed", e);
+            }
         }
     }
 
-    private long getFileSize(String daemonLocation, String fileName) {
+    private long getFileSize(String daemonLocation, String fileName) throws IOException {
         String[] parts = daemonLocation.split(":");
         String host = parts[0];
         int port = Integer.parseInt(parts[1]);
@@ -85,7 +96,11 @@ public class DownloadClient {
 
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Error getting file size from " + daemonLocation + ": " + e.getMessage());
-            return -1;
+            if (e instanceof IOException) {
+                throw (IOException) e;
+            } else {
+                throw new IOException("Failed to get file size", e);
+            }
         }
     }
 
@@ -109,7 +124,7 @@ public class DownloadClient {
         }
     }
 
-    private void assembleFile(byte[][] fragments, String destinationPath) {
+    private void assembleFile(byte[][] fragments, String destinationPath) throws IOException {
         try (FileOutputStream fos = new FileOutputStream(destinationPath)) {
             for (byte[] fragment : fragments) {
                 if (fragment != null) {
@@ -120,6 +135,7 @@ public class DownloadClient {
             }
         } catch (IOException e) {
             System.err.println("Error assembling file: " + e.getMessage());
+            throw e;
         }
     }
 
@@ -134,6 +150,10 @@ public class DownloadClient {
         String destinationPath = args[2];
 
         DownloadClient client = new DownloadClient(directoryHost);
-        client.downloadFile(fileName, destinationPath);
+        try {
+            client.downloadFile(fileName, destinationPath);
+        } catch (IOException e) {
+            System.err.println("Download failed: " + e.getMessage());
+        }
     }
 }

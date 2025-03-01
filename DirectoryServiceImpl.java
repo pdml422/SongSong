@@ -7,29 +7,38 @@ import java.util.Map;
 
 public class DirectoryServiceImpl extends UnicastRemoteObject implements DirectoryService {
 
-    // Map<filename, list<daemon_addresses>>
-    private final Map<String, List<String>> fileLocations;
+    private final Map<String, List<Daemon>> fileLocations; // fileName -> list of DaemonInterface
 
     public DirectoryServiceImpl() throws RemoteException {
         fileLocations = new HashMap<>();
     }
 
     @Override
-    public synchronized void registerFile(String fileName, String daemonAddress, int daemonPort) throws RemoteException {
-        String location = daemonAddress + ":" + daemonPort;
+    public synchronized void registerFile(String fileName, Daemon daemon) throws RemoteException {
         if (!fileLocations.containsKey(fileName)) {
             fileLocations.put(fileName, new ArrayList<>());
         }
-        List<String> locations = fileLocations.get(fileName);
-        if (!locations.contains(location)) {
-            locations.add(location);
+        List<Daemon> daemons = fileLocations.get(fileName);
+        if (!daemons.contains(daemon)) {
+            daemons.add(daemon);
         }
-        System.out.println("Registered " + fileName + " at " + location);
+        System.out.println("Registered " + fileName + " at " + daemon.getDaemonAddress() + ":" + daemon.getDaemonPort());
     }
 
     @Override
-    public synchronized List<String> getDaemonLocations(String fileName) throws RemoteException {
-        // Return a list according to fileName or an empty one in 404 case
-        return fileLocations.getOrDefault(fileName, new ArrayList<>());
+    public synchronized void unregisterFile(String fileName, Daemon daemon) throws RemoteException {
+        if (fileLocations.containsKey(fileName)) {
+            List<Daemon> daemons = fileLocations.get(fileName);
+            daemons.remove(daemon);
+            if (daemons.isEmpty()) {
+                fileLocations.remove(fileName);
+            }
+            System.out.println("Unregistered " + fileName + " at " + daemon.getDaemonAddress() + ":" + daemon.getDaemonPort());
+        }
+    }
+
+    @Override
+    public synchronized List<Daemon> getDaemonLocations(String fileName) throws RemoteException {
+        return fileLocations.getOrDefault(fileName, new ArrayList<>()); // Return an empty list if no daemons have the file
     }
 }
