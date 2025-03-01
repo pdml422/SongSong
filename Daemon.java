@@ -116,7 +116,7 @@ public class Daemon {
             }
 
             long fileSize = file.length();
-            int fragmentSize = 1024; // Example fragment size, adjust as needed
+            int fragmentSize = 1024 * 1024; // 1MB
             long startByte = (long) fragmentNumber * fragmentSize;
 
             if (startByte >= fileSize) {

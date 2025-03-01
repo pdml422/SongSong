@@ -9,7 +9,7 @@ public class DownloadClient {
 
     private final String directoryHost;
     private final int directoryPort = 4000;
-    private final int fragmentSize = 1024; // Example fragment size
+    private final int fragmentSize = 1024 * 1024; // 1MB
 
     public DownloadClient(String directoryHost) {
         this.directoryHost = directoryHost;
