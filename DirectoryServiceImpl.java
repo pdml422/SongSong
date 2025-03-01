@@ -7,11 +7,10 @@ import java.util.Map;
 
 public class DirectoryServiceImpl extends UnicastRemoteObject implements DirectoryService {
 
-    private static final long serialVersionUID = 1L;
-    private final Map<String, List<String>> fileLocations; // fileName -> list of daemon addresses:ports
+    // Map<filename, list<daemon_addresses>>
+    private final Map<String, List<String>> fileLocations;
 
     public DirectoryServiceImpl() throws RemoteException {
-        super();
         fileLocations = new HashMap<>();
     }
 
@@ -29,20 +28,8 @@ public class DirectoryServiceImpl extends UnicastRemoteObject implements Directo
     }
 
     @Override
-    public synchronized void unregisterFile(String fileName, String daemonAddress, int daemonPort) throws RemoteException {
-        String location = daemonAddress + ":" + daemonPort;
-        if (fileLocations.containsKey(fileName)) {
-            List<String> locations = fileLocations.get(fileName);
-            locations.remove(location);
-            if (locations.isEmpty()) {
-                fileLocations.remove(fileName);
-            }
-            System.out.println("Unregistered " + fileName + " at " + location);
-        }
-    }
-
-    @Override
     public synchronized List<String> getDaemonLocations(String fileName) throws RemoteException {
-        return fileLocations.getOrDefault(fileName, new ArrayList<>()); // Return an empty list if no daemons have the file
+        // Return a list according to fileName or an empty one in 404 case
+        return fileLocations.getOrDefault(fileName, new ArrayList<>());
     }
 }

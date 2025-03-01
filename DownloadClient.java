@@ -8,7 +8,7 @@ import java.util.List;
 public class DownloadClient {
 
     private final String directoryHost;
-    private final int directoryPort = 1099;
+    private final int directoryPort = 4000;
     private final int fragmentSize = 1024; // Example fragment size
 
     public DownloadClient(String directoryHost) {
@@ -19,7 +19,7 @@ public class DownloadClient {
         try {
             // 1. Get daemon locations from the Directory
             Registry registry = LocateRegistry.getRegistry(directoryHost, directoryPort);
-            DirectoryService directoryService = (DirectoryService) registry.lookup("DirectoryService");
+            DirectoryService directoryService = (DirectoryService) registry.lookup("directory_service");
             List<String> daemonLocations = directoryService.getDaemonLocations(fileName);
 
             if (daemonLocations.isEmpty()) {

@@ -8,7 +8,7 @@ import java.util.Set;
 public class Daemon {
 
     private final String directoryHost;
-    private final int directoryPort = 1099;
+    private final int directoryPort = 4000;
     private final int daemonPort;
     private final String daemonAddress;
     private final Set<String> availableFiles;
@@ -42,7 +42,7 @@ public class Daemon {
     private void registerWithDirectory() {
         try {
             Registry registry = LocateRegistry.getRegistry(directoryHost, directoryPort);
-            DirectoryService directoryService = (DirectoryService) registry.lookup("DirectoryService");
+            DirectoryService directoryService = (DirectoryService) registry.lookup("directory_service");
 
             for (String file : availableFiles) {
                 directoryService.registerFile(file, daemonAddress, daemonPort);
@@ -51,21 +51,6 @@ public class Daemon {
 
         } catch (Exception e) {
             System.err.println("Error registering with directory: " + e.getMessage());
-        }
-    }
-
-    public void unregisterWithDirectory() {
-        try {
-            Registry registry = LocateRegistry.getRegistry(directoryHost, directoryPort);
-            DirectoryService directoryService = (DirectoryService) registry.lookup("DirectoryService");
-
-            for (String file : availableFiles) {
-                directoryService.unregisterFile(file, daemonAddress, daemonPort);
-            }
-            System.out.println("Unregistered files with directory.");
-
-        } catch (Exception e) {
-            System.err.println("Error unregistering with directory: " + e.getMessage());
         }
     }
 
