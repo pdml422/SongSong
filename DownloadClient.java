@@ -16,6 +16,7 @@ public class DownloadClient {
     }
 
     public void downloadFile(String fileName, String destinationPath) {
+        long startTime = System.currentTimeMillis(); // Record start time
         try {
             // 1. Get daemon locations from the Directory
             Registry registry = LocateRegistry.getRegistry(directoryHost, directoryPort);
@@ -25,6 +26,8 @@ public class DownloadClient {
             if (daemonLocations.isEmpty()) {
                 System.out.println("No daemons have the file: " + fileName);
                 return;
+            } else {
+                System.out.println("The file is located in following Daemons: " + daemonLocations);
             }
 
             // 2. Determine file size (get from first daemon)
@@ -66,6 +69,10 @@ public class DownloadClient {
 
         } catch (Exception e) {
             System.err.println("Download failed: " + e.getMessage());
+        } finally {
+            long endTime = System.currentTimeMillis(); // Record end time
+            long downloadTime = endTime - startTime; // Calculate download time
+            System.out.println("Download time: " + downloadTime + " ms"); // Print download time
         }
     }
 
