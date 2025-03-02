@@ -2,21 +2,24 @@ import java.io.*;
 import java.net.Socket;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
+
 
 public class DownloadClient {
 
     private final String directoryHost;
     private final int directoryPort = 4000;
-    private final int fragmentSize = 1024 * 1024; // 1MB
+    // Set fragment size to 1MB
+    private final int fragmentSize = 1024 * 1024;
 
     public DownloadClient(String directoryHost) {
         this.directoryHost = directoryHost;
     }
 
     public void downloadFile(String fileName, String destinationPath) {
-        long startTime = System.currentTimeMillis(); // Record start time
+        // Record start time
+        long startTime = System.currentTimeMillis();
         try {
             // 1. Get daemon locations from the Directory
             Registry registry = LocateRegistry.getRegistry(directoryHost, directoryPort);
@@ -46,7 +49,8 @@ public class DownloadClient {
 
             for (int i = 0; i < numFragments; i++) {
                 final int fragmentNumber = i;
-                String daemonLocation = daemonLocations.get(i % daemonLocations.size()); // Distribute requests
+                // Distribute requests over Daemons
+                String daemonLocation = daemonLocations.get(i % daemonLocations.size());
                 threads[i] = new Thread(() -> {
                     fragments[fragmentNumber] = downloadFragment(daemonLocation, fileName, fragmentNumber);
                 });
@@ -70,9 +74,10 @@ public class DownloadClient {
         } catch (Exception e) {
             System.err.println("Download failed: " + e.getMessage());
         } finally {
-            long endTime = System.currentTimeMillis(); // Record end time
-            long downloadTime = endTime - startTime; // Calculate download time
-            System.out.println("Download time: " + downloadTime + " ms"); // Print download time
+            // Record end time and Calculate download time
+            long endTime = System.currentTimeMillis();
+            long downloadTime = endTime - startTime;
+            System.out.println("Download time: " + downloadTime + " ms");
         }
     }
 
@@ -86,7 +91,8 @@ public class DownloadClient {
                 ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
                 ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
         ) {
-            oos.writeObject("GET_FILE_SIZE"); // Special request to get file size
+            // Get file size first
+            oos.writeObject("GET_FILE_SIZE");
             oos.writeObject(fileName);
             return (long) ois.readObject();
 
@@ -108,13 +114,24 @@ public class DownloadClient {
         ) {
             oos.writeObject(fileName);
             oos.writeObject(fragmentNumber);
-            return (byte[]) ois.readObject();
+            byte[] compressedFragment = (byte[]) ois.readObject();
+
+            return decompressData(compressedFragment);
 
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Error downloading fragment " + fragmentNumber + " from " + daemonLocation + ": " + e.getMessage());
             return null;
         }
     }
+
+    // Decompress data using GZIP
+    private byte[] decompressData(byte[] compressedData) throws IOException {
+        ByteArrayInputStream byteStream = new ByteArrayInputStream(compressedData);
+        try (GZIPInputStream gzipStream = new GZIPInputStream(byteStream)) {
+            return gzipStream.readAllBytes();
+        }
+    }
+
 
     private void assembleFile(byte[][] fragments, String destinationPath) {
         try (FileOutputStream fos = new FileOutputStream(destinationPath)) {
@@ -132,7 +149,7 @@ public class DownloadClient {
 
     public static void main(String[] args) {
         if (args.length != 3) {
-            System.err.println("Usage: DownloadClient <directoryHost> <fileName> <destinationPath>");
+            System.err.println("Usage with the syntax: DownloadClient <directoryHost> <fileName> <destinationPath>");
             System.exit(1);
         }
 
